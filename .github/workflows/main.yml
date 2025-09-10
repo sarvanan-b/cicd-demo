@@ -44,8 +44,22 @@ jobs:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           IMAGE_NAME: my-image
         run: |
-          IMAGE_TAG=${{ github.sha }}
-          docker build -t $DOCKERHUB_USERNAME/$IMAGE_NAME:$IMAGE_TAG .
-          docker push $DOCKERHUB_USERNAME/$IMAGE_NAME:$IMAGE_TAG
-          docker tag $DOCKERHUB_USERNAME/$IMAGE_NAME:$IMAGE_TAG $DOCKERHUB_USERNAME/$IMAGE_NAME:latest
-          docker push $DOCKERHUB_USERNAME/$IMAGE_NAME:latest
+          # Use commit SHA, branch name, and latest tags
+          COMMIT_TAG=${{ github.sha }}
+          BRANCH_NAME=${GITHUB_REF_NAME}   # e.g. main, dev, feature-x
+
+          # Build image with commit SHA
+          docker build -t $DOCKERHUB_USERNAME/$IMAGE_NAME:$COMMIT_TAG .
+
+          # Push commit SHA
+          docker push $DOCKERHUB_USERNAME/$IMAGE_NAME:$COMMIT_TAG
+
+          # Tag and push with branch name
+          docker tag $DOCKERHUB_USERNAME/$IMAGE_NAME:$COMMIT_TAG $DOCKERHUB_USERNAME/$IMAGE_NAME:$BRANCH_NAME
+          docker push $DOCKERHUB_USERNAME/$IMAGE_NAME:$BRANCH_NAME
+
+          # Tag and push as latest (only if main branch)
+          if [ "$BRANCH_NAME" = "main" ]; then
+            docker tag $DOCKERHUB_USERNAME/$IMAGE_NAME:$COMMIT_TAG $DOCKERHUB_USERNAME/$IMAGE_NAME:latest
+            docker push $DOCKERHUB_USERNAME/$IMAGE_NAME:latest
+          fi
